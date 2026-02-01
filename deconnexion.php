@@ -1,0 +1,10 @@
+<?php
+	include("connection.inc.php");
+	include("securite.inc.php");
+	session_start();
+	oci_close($conn);
+	session_unset();
+	session_destroy();
+	header("location:connexion.php");
+	exit();
+?>

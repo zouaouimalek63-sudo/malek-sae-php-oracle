@@ -1,0 +1,164 @@
+<?php include("securite.inc.php");?>
+<?php
+include("connection.inc.php");
+
+$message = "";
+
+// Récupération des infos de l'elfe
+$elfe_actuel = null;
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['idelfe'])) {
+    $idelfe = $_POST['idelfe'];
+
+    $stid = oci_parse($conn, "SELECT * FROM Elfes WHERE ID_ELFE = :idelfe");
+    oci_bind_by_name($stid, ":idelfe", $idelfe);
+    oci_execute($stid);
+    $elfe_actuel = oci_fetch_assoc($stid);
+    oci_free_statement($stid);
+
+    if (!$elfe_actuel) {
+        $message = "<div class='alert alert-danger text-center'>🎅 Aucun elfe trouvé avec cet ID.</div>";
+    }
+}
+
+// Gestion de la modification
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['modifier'])) {
+    $idelfe = $_POST['idelfe'];
+    $new_id = isset($_POST['new_id']) && !empty($_POST['new_id']) ? $_POST['new_id'] : $idelfe;
+    $dirige = isset($_POST['dirige']) && $_POST['dirige'] !== "" ? (int)$_POST['dirige'] : (int)$elfe_actuel['DIRIGE'];
+    $nom = isset($_POST['nom']) && !empty($_POST['nom']) ? $_POST['nom'] : $elfe_actuel['NOM'];
+    $equipe = isset($_POST['equipe']) && !empty($_POST['equipe']) ? $_POST['equipe'] : $elfe_actuel['ID_EQUIPE'];
+
+    $update_stid = oci_parse($conn, "UPDATE Elfes SET ID_ELFE = :new_id,DIRIGE=:dirige ,NOM = :nom, ID_EQUIPE = :equipe WHERE ID_ELFE = :idelfe");
+    oci_bind_by_name($update_stid, ":new_id", $new_id);
+    oci_bind_by_name($update_stid, ":dirige", $dirige);
+    oci_bind_by_name($update_stid, ":nom", $nom);
+    oci_bind_by_name($update_stid, ":equipe", $equipe);
+    oci_bind_by_name($update_stid, ":idelfe", $idelfe);
+
+    if (oci_execute($update_stid)) {
+        $message = "<div class='alert alert-success text-center'>🎄 Elfe modifié avec succès !</div>";
+    } else {
+        $message = "<div class='alert alert-danger text-center'>❌ Erreur lors de la modification.</div>";
+    }
+    oci_free_statement($update_stid);
+}
+
+oci_close($conn);
+?>
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modifier un Elfe 🎅</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            background: url('noel.jpg') no-repeat center center fixed;
+            background-size: cover;
+            padding: 40px;
+            color: #fff;
+        }
+        .container {
+            max-width: 600px;
+            background: rgba(255, 0, 0, 0.85); /* Fond rouge transparent */
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            border: 3px solid gold;
+        }
+        h2 {
+            color: gold;
+            font-family: 'Comic Sans MS', cursive;
+        }
+        .form-label {
+            color: white;
+            font-weight: bold;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border: none;
+        }
+        .btn-success {
+            background-color: #28a745;
+            border: none;
+        }
+        .btn-warning {
+            background-color: gold;
+            border: none;
+            color: black;
+        }
+        .hidden {
+            display: none;
+        }
+        .btn-christmas {
+            background-color: #228B22; /* Vert sapin */
+            color: white;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2 class="text-center">🎄 Modifier un Elfe 🎄</h2>
+    <?php echo $message; ?>
+
+    <!-- Formulaire de recherche -->
+    <form method="POST">
+        <div class="mb-3">
+            <label class="form-label">ID Elfe (Obligatoire) 🎅</label>
+            <input type="text" class="form-control" name="idelfe" required value="<?php echo isset($idelfe) ? htmlentities($idelfe) : ''; ?>">
+        </div>
+        <button type="submit" class="btn btn-christmas w-100">🔍 Rechercher</button>
+    </form>
+
+    <?php if ($elfe_actuel): ?>
+        <!-- Formulaire de modification -->
+        <form method="POST" class="mt-4">
+            <input type="hidden" name="idelfe" value="<?php echo htmlentities($elfe_actuel['ID_ELFE']); ?>">
+
+            <div class="mb-3">
+                <label class="form-label">ID Actuel : <?php echo htmlentities($elfe_actuel['ID_ELFE']); ?> 🎅</label>
+                <button type="button" class="btn btn-warning btn-sm" id="btn-modifier-id">Modifier l'ID</button>
+            </div>
+
+            <div class="mb-3 hidden" id="champs-new-id">
+                <label class="form-label">🎁 Nouveau ID</label>
+                <input type="text" class="form-control" name="new_id">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">🎅 Nom (Actuel : <?php echo htmlentities($elfe_actuel['NOM']); ?>)</label>
+                <input type="text" class="form-control" name="nom" >
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">DIRIGE (Actuel : <?php echo htmlentities($elfe_actuel['DIRIGE'])?"OUI":"NON"; ?>)  tu entre 0 ou 1</label>
+                <input type="text" class="form-control" name="dirige" placeholder="Laisser vide pour conserver l'ancien">
+
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">🎄 Équipe (Actuel : <?php echo htmlentities($elfe_actuel['ID_EQUIPE']); ?>)</label>
+                <input type="text" class="form-control" name="equipe" placeholder="Laisser vide pour conserver l'ancien">
+            </div>
+
+            <button type="submit" name="modifier" class="btn btn-success w-100">🎄 Modifier</button>
+        </form>
+    <?php endif; ?>
+</div>
+
+<script>
+    $(document).ready(function () {
+        $("#btn-modifier-id").click(function () {
+            $("#champs-new-id").slideToggle();
+        });
+    });
+</script>
+
+</body>
+</html>
+
